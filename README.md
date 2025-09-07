@@ -26,16 +26,13 @@ Designed to run across multiple datasets (e.g., *Groundnut\_oil*, *Milk*, *Straw
 │  └─ Strawberry_purees.csv
 └─ outputs/                     # created at runtime for CSV/XLSX/PNG artifacts
 ```
-
-> **Case matters**: if scripts refer to `Dataset/`, keep the folder name exactly `Dataset/` (not `dataset/`).
-
 ---
 
 ## Data Format
 
 Input CSVs must contain:
 
-* `Wavelength` — an ID/descriptor column (any readable identifier)
+* `Wavelength/Sample` — an ID/descriptor column (any readable identifier)
 * Numeric feature columns
 * `Class` — integer class label. After key-sample marking, **non-key** samples will be set to `-1` (unlabeled) for the semi-supervised stage.
 
@@ -61,12 +58,11 @@ Input CSVs must contain:
 ### `code/semi_three_sim.py` (raw data)
 
 * Reads the three XLSX files, standardizes features, selects the **similarity function by filename** (Euclidean/Manhattan/Cosine), builds a **KNN** graph, and runs **Measure Propagation**.
-* Saves per-iteration `results_*.csv` (neighbors, original/pred labels, **CCER**) and per-K `metrics_*.csv` (accuracy/recall/precision/F1/AUC/**CCER**), plus a labeled graph PNG.
+* Saves per-iteration `results_*.csv` (neighbors, original/pred labels, **CCER**) and per-K `metrics_*.csv` (accuracy/recall/precision/F1/AUC/CCER), plus a labeled graph PNG.
 
 ### `code/semi_three_sim_filtered.py` (filtered data)
 
-* Same as `semi_three_sim.py`, but operates on the **filtered** XLSX outputs and writes to a filtered results directory under `outputs/`.
-
+* Same as `semi_three_sim.py`, but **starts from the LASSO-filtered CSV**.
 ---
 
 ## Choosing the **Proportion of Key Samples** (10% / 20% / 50%)
@@ -81,33 +77,13 @@ To **control the labeled ratio directly**, switch to a **top-k%** rule. In `key_
 # Default (percentile-based):
 # filtered_nodes = [node for node in sorted_nodes if degrees[node] >= degree_threshold]
 
-# Fixed-ratio alternative (example: 20%)
-KEY_RATIO = 0.20                  # change to 0.10 / 0.20 / 0.50 as needed
+# Fixed-ratio alternative (example: 10%)
+KEY_RATIO = 0.10                  # change to 0.10 / 0.20 / 0.50 as needed
 top_k_count = max(1, int(len(sorted_nodes) * KEY_RATIO))
 filtered_nodes = sorted_nodes[:top_k_count]
 ```
 
 This selects the top-`KEY_RATIO` fraction of high-degree nodes **per community** as known labels.
-
----
-
-## CCER: Cross-Class Edge Ratio
-
-**Definition**
-
-$$
-\mathrm{CCER} \;=\; \frac{\sum_{(v_i, v_j)\in E}\mathbf{1}\{\hat{y}_i \neq \hat{y}_j\}}{|E|}
-$$
-
-where $E$ are KNN edges (the implementation counts **directed** edges $i \to j$).
-
-* **CCER = 0**: no edge connects different predicted classes → perfectly separated clusters; the result can be treated as final.
-* **CCER > 0**: cross-class edges remain → boundaries are fuzzy.
-
-**Stored in outputs**
-
-* Each `results_*.csv` includes a `CCER` column (same scalar for that iteration).
-* Each `metrics_*.csv` includes a `ccer` column alongside accuracy/recall/precision/F1/AUC.
 
 ---
 
@@ -143,29 +119,10 @@ where $E$ are KNN edges (the implementation counts **directed** edges $i \to j$)
 
 ## Quick Start
 
-1. **Install dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-   Example `requirements.txt`:
-
-   ```
-   pandas
-   numpy
-   scikit-learn
-   scipy
-   matplotlib
-   networkx
-   adjustText
-   tqdm
-   ```
-
-2. **Place your data** under `Dataset/` (e.g., `Groundnut_oil.csv`, `Milk.csv`, `Strawberry_purees.csv`).
+1. **Place your data** under `Dataset/` (e.g., `Groundnut_oil.csv`, `Milk.csv`, `Strawberry_purees.csv`).
    Ensure columns include `Wavelength`, numeric features, and `Class`.
 
-3. **Run one of the two pipelines**
+2. **Run one of the two pipelines**
 
 **A. Raw-data route**
 
@@ -196,18 +153,59 @@ python code/semi_three_sim_filtered.py
 * `results_*.csv` — per-iteration details (neighbors, original/pred labels, `CCER`)
 * `*.png` — KNN graph visualizations with labels
 
----
-
-## Tips & Troubleshooting
-
-* **AUC errors/NaN** may occur if predictions contain only a single class. Inspect label balance or rely on other metrics/CCER for that run.
-* **Case sensitivity**: `Dataset/` ≠ `dataset/`. Keep paths consistent with folder names.
-* **Speed/memory**: Large `K` or a wide grid can be slow on large datasets. Start coarse, review **CCER** and metrics, then refine.
-* **Multi-class**: Increase `n_clusters` in the key-sample step and keep `multi_class='ovo'` for AUC.
-* **Reproducible figures**: graph layout uses a fixed seed.
-
----
-
 ## License & Citation (optional)
 
-Add a `LICENSE` of your choice. If you use this repository in academic work, please cite the repo and your dataset sources. You may also acknowledge the **CCER** criterion and the graph-based semi-supervised framework implemented here.
+## Data Sources
+
+* **Groundnut Oil Adulteration** (CSV)
+  `kishores2410` (2024). *Groundnut Oil Adulteration*.
+  [https://github.com/kishores2410/Food-Adulteration-Dataset/blob/main/Groundnut%20Oil%20Adulteration.csv](https://github.com/kishores2410/Food-Adulteration-Dataset/blob/main/Groundnut%20Oil%20Adulteration.csv) (accessed 2024-07-16).
+
+* **Milk (AP-MALDI MS profiling)**
+  Cristian Piras & Rainer Cramer (2020). *Speciation and adulteration analysis of milk by liquid AP-MALDI MS profiling*. University of Reading.
+  [https://researchdata.reading.ac.uk/232/](https://researchdata.reading.ac.uk/232/)
+
+* **Strawberry Purees (FTIR + PLS)**
+  Holland, J. K., Kemsley, E. K., & Wilson, R. H. (1998). *Use of Fourier transform infrared spectroscopy and partial least squares regression for the detection of adulteration of strawberry purees*. **Journal of the Science of Food and Agriculture**, 76(2), 263–269.
+
+### BibTeX (data sources)
+
+```bibtex
+@misc{kishores2410_2024,
+  author = {kishores2410},
+  title  = {Groundnut Oil Adulteration},
+  year   = {2024},
+  url    = {https://github.com/kishores2410/Food-Adulteration-Dataset/blob/main/Groundnut%20Oil%20Adulteration.csv},
+  note   = {Accessed: 2024-07-16}
+}
+
+@misc{rdgdr232,
+  title     = {Speciation and adulteration analysis of milk by liquid AP-MALDI MS profiling},
+  author    = {Cristian Piras and Rainer Cramer},
+  publisher = {University of Reading},
+  year      = {2020},
+  keywords  = {food adulteration;MALDI MS profiling;top down proteomics},
+  url       = {https://researchdata.reading.ac.uk/232/}
+}
+
+@article{holland1998use,
+  title   = {Use of Fourier transform infrared spectroscopy and partial least squares regression for the detection of adulteration of strawberry purees},
+  author  = {Holland, James K and Kemsley, E Katherine and Wilson, Reginald H},
+  journal = {Journal of the Science of Food and Agriculture},
+  volume  = {76},
+  number  = {2},
+  pages   = {263--269},
+  year    = {1998},
+  publisher = {Wiley Online Library}
+}
+```
+
+## License
+
+This project is released under the **MIT License**. 
+---
+
+## Acknowledgements (optional)
+
+We thank all dataset providers and prior works related to graph-based semi-supervised learning.
+
