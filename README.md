@@ -153,7 +153,7 @@ python code/semi_three_sim_filtered.py
 * `results_*.csv` — per-iteration details (neighbors, original/pred labels, `CCER`)
 * `*.png` — KNN graph visualizations with labels
 
-## License & Citation (optional)
+## License & Citation
 
 ## Data Sources
 
@@ -199,7 +199,7 @@ python code/semi_three_sim_filtered.py
   publisher = {Wiley Online Library}
 }
 ```
-
+---
 ## License
 
 This project is licensed under the MIT License - see the LICENSE.md file for details.
