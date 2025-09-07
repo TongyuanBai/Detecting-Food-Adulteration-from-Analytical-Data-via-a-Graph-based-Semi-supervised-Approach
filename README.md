@@ -202,10 +202,10 @@ python code/semi_three_sim_filtered.py
 
 ## License
 
-This project is released under the **MIT License**. 
+This project is licensed under the MIT License - see the LICENSE.md file for details.
 ---
 
-## Acknowledgements (optional)
+## Acknowledgements
 
 We thank all dataset providers and prior works related to graph-based semi-supervised learning.
 
